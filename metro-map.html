@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>地铁线路图 - 全国地铁官网导航</title>
+    <!-- Tailwind CSS v3 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <!-- 地铁数据 -->
+    <script src="data/metro_data.js"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#1E40AF', // 交通蓝
+                        secondary: '#FF6B00', // 强调橙
+                        neutral: '#F3F4F6', // 浅灰背景
+                        dark: '#1F2937', // 深色文本
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .text-shadow {
+                text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            }
+            .bg-gradient {
+                background: linear-gradient(135deg, theme('colors.primary'), #3B82F6);
+            }
+        }
+        
+        /* 地铁线路图样式 */
+        .metro-map {
+            background-color: #F8F9FA;
+            border: 1px solid #E9ECEF;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .station {
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .station:hover {
+            filter: brightness(1.2);
+        }
+        
+        .station-name {
+            font-size: 12px;
+            text-anchor: middle;
+            dominant-baseline: middle;
+            pointer-events: none;
+        }
+        
+        .line {
+            stroke-width: 6;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+        
+        .transfer-station circle {
+            stroke: #000;
+            stroke-width: 2;
+        }
+        
+        /* 自定义滚动条 */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: theme('colors.neutral');
+        }
+        ::-webkit-scrollbar-thumb {
+            background: theme('colors.primary');
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #1E3A8A;
+        }
+        
+        /* 站点详情弹窗 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            overflow: auto;
+        }
+        
+        .modal-content {
+            background-color: #fff;
+            margin: 10% auto;
+            padding: 20px;
+            border-radius: 8px;
+            width: 80%;
+            max-width: 500px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            animation: modalFadeIn 0.3s ease;
+        }
+        
+        @keyframes modalFadeIn {
+            from {opacity: 0; transform: translateY(-50px);}
+            to {opacity: 1; transform: translateY(0);}
+        }
+        
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        .close:hover {
+            color: #000;
+        }
+    </style>
+</head>
+<body class="bg-neutral min-h-screen">
+    <!-- 顶部导航栏 -->
+    <header class="bg-white shadow-md sticky top-0 z-50">
+        <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+                <a href="index.html" class="flex items-center space-x-2">
+                    <img src="https://p11-doubao-search-sign.byteimg.com/labis/ee0e0e0cf1229f55ea9c62b70a0e91e5~tplv-be4g95zd3a-image.jpeg?lk3s=feb11e32&x-expires=1784882899&x-signature=X%2BwyyWot%2FxywsFSbL3H7%2BhzNmSY%3D" alt="地铁图标" class="h-10 w-10">
+                    <h1 class="text-2xl font-bold text-primary">全国地铁官网导航</h1>
+                </a>
+            </div>
+            
+            <!-- 城市选择器 -->
+            <div class="hidden md:flex items-center bg-neutral rounded-full px-4 py-2">
+                <select id="city-selector" class="bg-transparent border-none outline-none flex-grow">
+                    <option value="beijing">北京</option>
+                    <option value="shanghai">上海</option>
+                    <option value="guangzhou">广州</option>
+                    <option value="shenzhen">深圳</option>
+                    <option value="chengdu">成都</option>
+                </select>
+            </div>
+            
+            <!-- 移动端菜单按钮 -->
+            <button id="mobile-menu-btn" class="md:hidden text-primary text-2xl">
+                <i class="fa fa-bars"></i>
+            </button>
+        </div>
+        
+        <!-- 移动端城市选择器 -->
+        <div id="mobile-selector" class="md:hidden px-4 pb-3 hidden">
+            <div class="flex items-center bg-neutral rounded-full px-4 py-2">
+                <select id="mobile-city-selector" class="bg-transparent border-none outline-none flex-grow">
+                    <option value="beijing">北京</option>
+                    <option value="shanghai">上海</option>
+                    <option value="guangzhou">广州</option>
+                    <option value="shenzhen">深圳</option>
+                    <option value="chengdu">成都</option>
+                </select>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主要内容区域 -->
+    <main class="container mx-auto px-4 py-8">
+        <div class="mb-8">
+            <h2 class="text-3xl font-bold text-dark mb-4">地铁线路图</h2>
+            <p class="text-gray-600">选择城市查看详细的地铁线路图，点击站点可查看站点信息和换乘线路。</p>
+        </div>
+        
+        <!-- 地铁线路图容器 -->
+        <div class="metro-map w-full h-[600px] overflow-auto mb-8">
+            <svg id="metro-svg" width="100%" height="100%" viewBox="0 0 1000 800"></svg>
+        </div>
+        
+        <!-- 图例说明 -->
+        <div class="bg-white rounded-xl shadow-md p-6 mb-8">
+            <h3 class="text-xl font-bold text-dark mb-4">图例说明</h3>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="flex items-center">
+                    <div class="w-4 h-4 rounded-full bg-red-500 mr-2"></div>
+                    <span>1号线</span>
+                </div>
+                <div class="flex items-center">
+                    <div class="w-4 h-4 rounded-full bg-green-600 mr-2"></div>
+                    <span>2号线</span>
+                </div>
+                <div class="flex items-center">
+                    <div class="w-4 h-4 rounded-full bg-blue-500 mr-2"></div>
+                    <span>3号线</span>
+                </div>
+                <div class="flex items-center">
+                    <div class="w-4 h-4 rounded-full bg-purple-500 mr-2"></div>
+                    <span>4号线</span>
+                </div>
+            </div>
+            <div class="mt-4">
+                <div class="flex items-center">
+                    <div class="w-4 h-4 rounded-full border-2 border-black bg-white mr-2"></div>
+                    <span>换乘站</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 功能按钮 -->
+        <div class="flex flex-wrap gap-4 mb-8">
+            <button id="zoom-in" class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-opacity-90 transition-colors">
+                <i class="fa fa-search-plus mr-1"></i>放大
+            </button>
+            <button id="zoom-out" class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-opacity-90 transition-colors">
+                <i class="fa fa-search-minus mr-1"></i>缩小
+            </button>
+            <button id="reset-view" class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-opacity-90 transition-colors">
+                <i class="fa fa-refresh mr-1"></i>重置视图
+            </button>
+            <button id="download-map" class="bg-secondary text-white px-4 py-2 rounded-lg hover:bg-opacity-90 transition-colors">
+                <i class="fa fa-download mr-1"></i>下载线路图
+            </button>
+        </div>
+        
+        <!-- 站点列表 -->
+        <div class="bg-white rounded-xl shadow-md p-6">
+            <h3 class="text-xl font-bold text-dark mb-4">站点列表</h3>
+            <div id="station-list" class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <!-- 站点列表将通过JavaScript动态生成 -->
+            </div>
+        </div>
+    </main>
+
+    <!-- 底部区域 -->
+    <footer class="bg-dark text-white py-8 mt-12">
+        <div class="container mx-auto px-4 text-center">
+            <p>&copy; 2026 全国地铁官网导航 - 地铁爱好者资源平台. 保留所有权利.</p>
+            <p class="mt-2 text-gray-400">数据来源：地铁通</p>
+        </div>
+    </footer>
+
+    <!-- 站点详情弹窗 -->
+    <div id="station-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3 id="modal-title" class="text-2xl font-bold mb-4">站点详情</h3>
+            <div id="modal-content">
+                <!-- 站点详情将通过JavaScript动态生成 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 获取DOM元素
+            const svg = document.getElementById('metro-svg');
+            const citySelector = document.getElementById('city-selector');
+            const mobileCitySelector = document.getElementById('mobile-city-selector');
+            const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+            const mobileSelector = document.getElementById('mobile-selector');
+            const zoomInBtn = document.getElementById('zoom-in');
+            const zoomOutBtn = document.getElementById('zoom-out');
+            const resetViewBtn = document.getElementById('reset-view');
+            const downloadMapBtn = document.getElementById('download-map');
+            const stationList = document.getElementById('station-list');
+            const modal = document.getElementById('station-modal');
+            const modalTitle = document.getElementById('modal-title');
+            const modalContent = document.getElementById('modal-content');
+            const closeModal = document.querySelector('.modal .close');
+            
+            // 初始化变量
+            let currentCity = 'beijing';
+            let scale = 1;
+            let translateX = 0;
+            let translateY = 0;
+            let isDragging = false;
+            let startX, startY;
+            let stations = [];
+            
+            // 移动端菜单切换
+            mobileMenuBtn.addEventListener('click', function() {
+                mobileSelector.classList.toggle('hidden');
+            });
+            
+            // 城市选择器事件
+            citySelector.addEventListener('change', function() {
+                currentCity = this.value;
+                mobileCitySelector.value = currentCity;
+                drawMetroMap();
+            });
+            
+            mobileCitySelector.addEventListener('change', function() {
+                currentCity = this.value;
+                citySelector.value = currentCity;
+                drawMetroMap();
+            });
+            
+            // 缩放和平移功能
+            zoomInBtn.addEventListener('click', function() {
+                scale *= 1.2;
+                updateTransform();
+            });
+            
+            zoomOutBtn.addEventListener('click', function() {
+                scale /= 1.2;
+                updateTransform();
+            });
+            
+            resetViewBtn.addEventListener('click', function() {
+                scale = 1;
+                translateX = 0;
+                translateY = 0;
+                updateTransform();
+            });
+            
+            // 下载线路图
+            downloadMapBtn.addEventListener('click', function() {
+                // 创建一个新的SVG元素用于下载
+                const downloadSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                downloadSvg.setAttribute('width', '1000');
+                downloadSvg.setAttribute('height', '800');
+                downloadSvg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+                
+                // 复制当前SVG的内容
+                const svgContent = svg.innerHTML;
+                downloadSvg.innerHTML = svgContent;
+                
+                // 创建下载链接
+                const svgData = new XMLSerializer().serializeToString(downloadSvg);
+                const svgBlob = new Blob([svgData], {type: 'image/svg+xml;charset=utf-8'});
+                const svgUrl = URL.createObjectURL(svgBlob);
+                const downloadLink = document.createElement('a');
+                downloadLink.href = svgUrl;
+                downloadLink.download = `${getCityName(currentCity)}地铁线路图.svg`;
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
+                document.body.removeChild(downloadLink);
+            });
+            
+            // 拖拽功能
+            svg.addEventListener('mousedown', function(e) {
+                isDragging = true;
+                startX = e.clientX - translateX;
+                startY = e.clientY - translateY;
+                svg.style.cursor = 'grabbing';
+            });
+            
+            document.addEventListener('mousemove', function(e) {
+                if (!isDragging) return;
+                
+                translateX = e.clientX - startX;
+                translateY = e.clientY - startY;
+                updateTransform();
+            });
+            
+            document.addEventListener('mouseup', function() {
+                isDragging = false;
+                svg.style.cursor = 'default';
+            });
+            
+            // 滚轮缩放
+            svg.addEventListener('wheel', function(e) {
+                e.preventDefault();
+                
+                const rect = svg.getBoundingClientRect();
+                const mouseX = e.clientX - rect.left;
+                const mouseY = e.clientY - rect.top;
+                
+                // 计算鼠标相对于SVG的位置
+                const svgX = (mouseX - translateX) / scale;
+                const svgY = (mouseY - translateY) / scale;
+                
+                // 根据滚轮方向缩放
+                if (e.deltaY < 0) {
+                    scale *= 1.1;
+                } else {
+                    scale /= 1.1;
+                }
+                
+                // 调整平移以保持鼠标位置不变
+                translateX = mouseX - svgX * scale;
+                translateY = mouseY - svgY * scale;
+                
+                updateTransform();
+            });
+            
+            // 关闭弹窗
+            closeModal.addEventListener('click', function() {
+                modal.style.display = 'none';
+            });
+            
+            window.addEventListener('click', function(e) {
+                if (e.target === modal) {
+                    modal.style.display = 'none';
+                }
+            });
+            
+            // 更新SVG变换
+            function updateTransform() {
+                svg.style.transform = `scale(${scale}) translate(${translateX/scale}px, ${translateY/scale}px)`;
+            }
+            
+            // 获取城市名称
+            function getCityName(cityId) {
+                const city = metroData.cities.find(city => city.id === cityId);
+                return city ? city.name : '';
+            }
+            
+            // 绘制地铁线路图
+            function drawMetroMap() {
+                // 清空SVG
+                svg.innerHTML = '';
+                
+                // 获取当前城市数据
+                const cityData = metroData.cities.find(city => city.id === currentCity);
+                if (!cityData) return;
+                
+                // 生成站点位置数据（简化版，实际应用中可能需要更复杂的算法）
+                generateStationPositions(cityData);
+                
+                // 绘制线路
+                cityData.lines.forEach(line => {
+                    drawLine(line);
+                });
+                
+                // 绘制站点
+                stations.forEach(station => {
+                    drawStation(station);
+                });
+                
+                // 更新站点列表
+                updateStationList(cityData);
+            }
+            
+            // 生成站点位置（简化版）
+            function generateStationPositions(cityData) {
+                stations = [];
+                
+                cityData.lines.forEach((line, lineIndex) => {
+                    const lineColor = line.color || `hsl(${lineIndex * 60}, 70%, 50%)`;
+                    
+                    line.stations.forEach((station, stationIndex) => {
+                        // 简单的网格布局，实际应用中可能需要更复杂的算法
+                        const x = 100 + lineIndex * 200;
+                        const y = 100 + stationIndex * 80;
+                        
+                        stations.push({
+                            id: station.id,
+                            name: station.name,
+                            lineId: line.id,
+                            lineName: line.name,
+                            lineColor: lineColor,
+                            x: x,
+                            y: y,
+                            transfer: station.transfer || [],
+                            isTransfer: station.transfer && station.transfer.length > 0
+                        });
+                    });
+                });
+                
+                // 处理换乘站位置（简化版）
+                const transferStationMap = {};
+                
+                stations.forEach(station => {
+                    if (station.isTransfer) {
+                        const key = station.name;
+                        if (!transferStationMap[key]) {
+                            transferStationMap[key] = [];
+                        }
+                        transferStationMap[key].push(station);
+                    }
+                });
+                
+                // 合并换乘站位置
+                Object.values(transferStationMap).forEach(transferGroup => {
+                    if (transferGroup.length > 1) {
+                        // 计算平均位置
+                        const avgX = transferGroup.reduce((sum, s) => sum + s.x, 0) / transferGroup.length;
+                        const avgY = transferGroup.reduce((sum, s) => sum + s.y, 0) / transferGroup.length;
+                        
+                        // 更新所有换乘站的位置
+                        transferGroup.forEach(station => {
+                            station.x = avgX;
+                            station.y = avgY;
+                        });
+                    }
+                });
+            }
+            
+            // 绘制线路
+            function drawLine(line) {
+                const lineColor = line.color || '#000';
+                const lineStations = stations.filter(station => station.lineId === line.id);
+                
+                if (lineStations.length < 2) return;
+                
+                const pathData = lineStations.map((station, index) => {
+                    const command = index === 0 ? 'M' : 'L';
+                    return `${command} ${station.x} ${station.y}`;
+                }).join(' ');
+                
+                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                path.setAttribute('d', pathData);
+                path.setAttribute('stroke', lineColor);
+                path.setAttribute('stroke-width', '6');
+                path.setAttribute('fill', 'none');
+                path.setAttribute('class', 'line');
+                path.setAttribute('data-line-id', line.id);
+                path.setAttribute('data-line-name', line.name);
+                
+                svg.appendChild(path);
+            }
+            
+            // 绘制站点
+            function drawStation(station) {
+                const stationGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                stationGroup.setAttribute('class', `station ${station.isTransfer ? 'transfer-station' : ''}`);
+                stationGroup.setAttribute('data-station-id', station.id);
+                stationGroup.setAttribute('data-station-name', station.name);
+                stationGroup.setAttribute('data-line-id', station.lineId);
+                
+                // 站点圆圈
+                const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                circle.setAttribute('cx', station.x);
+                circle.setAttribute('cy', station.y);
+                circle.setAttribute('r', '8');
+                circle.setAttribute('fill', station.lineColor);
+                
+                // 站点名称
+                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                text.setAttribute('x', station.x);
+                text.setAttribute('y', station.y + 25);
+                text.setAttribute('class', 'station-name');
+                text.textContent = station.name;
+                
+                // 添加到组
+                stationGroup.appendChild(circle);
+                stationGroup.appendChild(text);
+                
+                // 添加点击事件
+                stationGroup.addEventListener('click', function() {
+                    showStationDetails(station);
+                });
+                
+                svg.appendChild(stationGroup);
+            }
+            
+            // 显示站点详情
+            function showStationDetails(station) {
+                modalTitle.textContent = station.name;
+                
+                // 获取站点所属线路
+                const cityData = metroData.cities.find(city => city.id === currentCity);
+                const line = cityData.lines.find(l => l.id === station.lineId);
+                
+                // 构建详情内容
+                let content = `
+                    <div class="mb-4">
+                        <p class="font-bold">所属线路：</p>
+                        <p><span class="inline-block w-4 h-4 rounded-full bg-${station.lineColor} mr-2"></span>${line.name}</p>
+                    </div>
+                `;
+                
+                // 换乘信息
+                if (station.isTransfer && station.transfer.length > 0) {
+                    content += `
+                        <div class="mb-4">
+                            <p class="font-bold">换乘线路：</p>
+                            <ul class="list-disc pl-5">
+                                ${station.transfer.map(lineId => {
+                                    const transferLine = cityData.lines.find(l => l.id === lineId);
+                                    return `<li>${transferLine ? transferLine.name : lineId}</li>`;
+                                }).join('')}
+                            </ul>
+                        </div>
+                    `;
+                }
+                
+                // 站点位置
+                content += `
+                    <div class="mb-4">
+                        <p class="font-bold">站点位置：</p>
+                        <p>坐标：(${station.x}, ${station.y})</p>
+                    </div>
+                `;
+                
+                modalContent.innerHTML = content;
+                modal.style.display = 'block';
+            }
+            
+            // 更新站点列表
+            function updateStationList(cityData) {
+                stationList.innerHTML = '';
+                
+                cityData.lines.forEach(line => {
+                    const lineSection = document.createElement('div');
+                    lineSection.className = 'col-span-2 md:col-span-4 mb-6';
+                    
+                    const lineHeader = document.createElement('h4');
+                    lineHeader.className = 'text-lg font-bold mb-2 flex items-center';
+                    lineHeader.innerHTML = `<span class="inline-block w-4 h-4 rounded-full bg-${line.color} mr-2"></span>${line.name}`;
+                    
+                    lineSection.appendChild(lineHeader);
+                    
+                    const stationsList = document.createElement('div');
+                    stationsList.className = 'grid grid-cols-2 md:grid-cols-4 gap-2';
+                    
+                    line.stations.forEach(station => {
+                        const stationItem = document.createElement('div');
+                        stationItem.className = 'py-1 px-2 rounded hover:bg-gray-100 cursor-pointer transition-colors';
+                        stationItem.textContent = station.name;
+                        
+                        // 添加点击事件
+                        stationItem.addEventListener('click', function() {
+                            const stationData = stations.find(s => s.id === station.id);
+                            if (stationData) {
+                                showStationDetails(stationData);
+                            }
+                        });
+                        
+                        stationsList.appendChild(stationItem);
+                    });
+                    
+                    lineSection.appendChild(stationsList);
+                    stationList.appendChild(lineSection);
+                });
+            }
+            
+            // 初始化
+            drawMetroMap();
+        });
+    </script>
+</body>
+</html>

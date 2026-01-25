@@ -1,43 +1,945 @@
-# Simple workflow for deploying static content to GitHub Pages
-name: Deploy static content to Pages
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>全国地铁官网导航 - 地铁爱好者资源平台</title>
+    <!-- Tailwind CSS v3 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <!-- AOS 动画库 -->
+    <link href="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.js"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#1E40AF', // 交通蓝
+                        secondary: '#FF6B00', // 强调橙
+                        neutral: '#F3F4F6', // 浅灰背景
+                        dark: '#1F2937', // 深色文本
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                    boxShadow: {
+                        'card': '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                        'card-hover': '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                    }
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .text-shadow {
+                text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            }
+            .bg-gradient {
+                background: linear-gradient(135deg, theme('colors.primary'), #3B82F6);
+            }
+            .card-transition {
+                transition: all 0.3s ease;
+            }
+        }
+        
+        /* 自定义滚动条 */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: theme('colors.neutral');
+        }
+        ::-webkit-scrollbar-thumb {
+            background: theme('colors.primary');
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #1E3A8A;
+        }
+        
+        /* 地铁动画 */
+        .train-animation {
+            animation: moveTrain 15s linear infinite;
+        }
+        @keyframes moveTrain {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100vw); }
+        }
+        
+        /* 线路图悬停效果 */
+        .map-preview {
+            opacity: 0;
+            transform: translateY(10px);
+            transition: all 0.3s ease;
+        }
+        .city-card:hover .map-preview {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body class="bg-neutral min-h-screen">
+    <!-- 顶部导航栏 -->
+    <header class="bg-white shadow-md sticky top-0 z-50">
+        <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+                <img src="https://p11-doubao-search-sign.byteimg.com/labis/ee0e0e0cf1229f55ea9c62b70a0e91e5~tplv-be4g95zd3a-image.jpeg?lk3s=feb11e32&x-expires=1784882899&x-signature=X%2BwyyWot%2FxywsFSbL3H7%2BhzNmSY%3D" alt="地铁图标" class="h-10 w-10">
+                <h1 class="text-2xl font-bold text-primary">全国地铁官网导航</h1>
+            </div>
+            
+            <!-- 搜索框 -->
+            <div class="hidden md:flex items-center bg-neutral rounded-full px-4 py-2 w-1/3">
+                <input type="text" id="city-search" placeholder="搜索城市..." class="bg-transparent border-none outline-none flex-grow">
+                <button id="search-btn" class="text-primary hover:text-secondary transition-colors">
+                    <i class="fa fa-search text-lg"></i>
+                </button>
+            </div>
+            
+            <!-- 移动端菜单按钮 -->
+            <button id="mobile-menu-btn" class="md:hidden text-primary text-2xl">
+                <i class="fa fa-bars"></i>
+            </button>
+        </div>
+        
+        <!-- 移动端搜索框 -->
+        <div id="mobile-search" class="md:hidden px-4 pb-3 hidden">
+            <div class="flex items-center bg-neutral rounded-full px-4 py-2">
+                <input type="text" placeholder="搜索城市..." class="bg-transparent border-none outline-none flex-grow">
+                <button class="text-primary hover:text-secondary transition-colors">
+                    <i class="fa fa-search text-lg"></i>
+                </button>
+            </div>
+        </div>
+        
+        <!-- 导航菜单 -->
+        <nav id="main-nav" class="bg-white border-t border-gray-200 hidden md:block">
+            <div class="container mx-auto px-4 py-2">
+                <ul class="flex space-x-6 overflow-x-auto">
+                    <li><a href="#all-cities" class="text-primary font-medium hover:text-secondary transition-colors py-2 inline-block">全部城市</a></li>
+                    <li><a href="#north" class="text-dark font-medium hover:text-secondary transition-colors py-2 inline-block">华北地区</a></li>
+                    <li><a href="#east" class="text-dark font-medium hover:text-secondary transition-colors py-2 inline-block">华东地区</a></li>
+                    <li><a href="#south" class="text-dark font-medium hover:text-secondary transition-colors py-2 inline-block">华南地区</a></li>
+                    <li><a href="#central" class="text-dark font-medium hover:text-secondary transition-colors py-2 inline-block">华中地区</a></li>
+                    <li><a href="#southwest" class="text-dark font-medium hover:text-secondary transition-colors py-2 inline-block">西南地区</a></li>
+                    <li><a href="#northwest" class="text-dark font-medium hover:text-secondary transition-colors py-2 inline-block">西北地区</a></li>
+                    <li><a href="#northeast" class="text-dark font-medium hover:text-secondary transition-colors py-2 inline-block">东北地区</a></li>
+                    <li><a href="metro-map.html" class="text-dark font-medium hover:text-secondary transition-colors py-2 inline-block">线路图</a></li>
+                    <li><a href="#爱好者资源" class="text-dark font-medium hover:text-secondary transition-colors py-2 inline-block">爱好者资源</a></li>
+                </ul>
+            </div>
+        </nav>
+    </header>
 
-on:
-  # Runs on pushes targeting the default branch
-  push:
-    branches: ["main"]
+    <!-- 英雄区域 -->
+    <section class="bg-gradient text-white py-16 relative overflow-hidden">
+        <div class="container mx-auto px-4 relative z-10">
+            <div class="max-w-3xl" data-aos="fade-right" data-aos-duration="1000">
+                <h2 class="text-4xl md:text-5xl font-bold mb-4 text-shadow">探索全国地铁网络</h2>
+                <p class="text-xl mb-8 opacity-90">一站式访问全国各城市地铁官网，为通勤者、旅行者和地铁爱好者提供便捷服务</p>
+                <div class="flex flex-wrap gap-4">
+                    <a href="#all-cities" class="bg-white text-primary px-6 py-3 rounded-full font-medium hover:bg-opacity-90 transition-all transform hover:-translate-y-1">
+                        <i class="fa fa-map-marker mr-2"></i>浏览城市
+                    </a>
+                    <a href="#爱好者资源" class="bg-secondary text-white px-6 py-3 rounded-full font-medium hover:bg-opacity-90 transition-all transform hover:-translate-y-1">
+                        <i class="fa fa-star mr-2"></i>爱好者资源
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 背景装饰 -->
+        <div class="absolute top-0 left-0 w-full h-full opacity-10">
+            <div class="absolute top-10 left-10 w-20 h-20 rounded-full bg-white"></div>
+            <div class="absolute bottom-10 right-20 w-32 h-32 rounded-full bg-white"></div>
+            <div class="absolute top-1/2 left-1/3 w-16 h-16 rounded-full bg-white"></div>
+        </div>
+        
+        <!-- 地铁动画 -->
+        <div class="absolute bottom-0 left-0 w-32 h-16 train-animation">
+            <img src="https://p11-doubao-search-sign.byteimg.com/labis/ee0e0e0cf1229f55ea9c62b70a0e91e5~tplv-be4g95zd3a-image.jpeg?lk3s=feb11e32&x-expires=1784882899&x-signature=X%2BwyyWot%2FxywsFSbL3H7%2BhzNmSY%3D" alt="地铁动画" class="w-full h-full object-contain">
+        </div>
+    </section>
 
-  # Allows you to run this workflow manually from the Actions tab
-  workflow_dispatch:
+    <!-- 主要内容区域 -->
+    <main class="container mx-auto px-4 py-12">
+        <!-- 数据统计 -->
+        <section class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-16" data-aos="fade-up" data-aos-duration="800">
+            <div class="bg-white rounded-xl shadow-card p-6 text-center">
+                <div class="text-4xl font-bold text-primary mb-2">49</div>
+                <div class="text-gray-600">开通地铁城市</div>
+            </div>
+            <div class="bg-white rounded-xl shadow-card p-6 text-center">
+                <div class="text-4xl font-bold text-primary mb-2">361</div>
+                <div class="text-gray-600">运营线路</div>
+            </div>
+            <div class="bg-white rounded-xl shadow-card p-6 text-center">
+                <div class="text-4xl font-bold text-primary mb-2">12160</div>
+                <div class="text-gray-600">运营里程(公里)</div>
+            </div>
+            <div class="bg-white rounded-xl shadow-card p-6 text-center">
+                <div class="text-4xl font-bold text-primary mb-2">9306</div>
+                <div class="text-gray-600">地铁里程(公里)</div>
+            </div>
+        </section>
 
-# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
-permissions:
-  contents: read
-  pages: write
-  id-token: write
+        <!-- 城市地铁导航 -->
+        <section id="all-cities" class="mb-16">
+            <div class="flex justify-between items-center mb-8">
+                <h2 class="text-3xl font-bold text-dark" data-aos="fade-right">全国地铁城市</h2>
+                <div class="flex space-x-2">
+                    <button id="grid-view" class="bg-primary text-white p-2 rounded-md">
+                        <i class="fa fa-th"></i>
+                    </button>
+                    <button id="list-view" class="bg-white text-primary p-2 rounded-md border border-primary">
+                        <i class="fa fa-list"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 华北地区 -->
+            <div id="north" class="mb-12">
+                <h3 class="text-2xl font-bold text-dark mb-6 flex items-center" data-aos="fade-right">
+                    <i class="fa fa-map-marker text-secondary mr-2"></i>华北地区
+                </h3>
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6" id="north-cities">
+                    <!-- 北京 -->
+                    <div class="city-card bg-white rounded-xl shadow-card overflow-hidden card-transition hover:shadow-card-hover transform hover:-translate-y-1" data-aos="fade-up" data-city="北京">
+                        <div class="p-6">
+                            <div class="flex justify-between items-center mb-4">
+                                <h4 class="text-xl font-bold text-dark">北京地铁</h4>
+                                <img src="https://p11-doubao-search-sign.byteimg.com/labis/ff616653c4647a8159764be8a59c88bf~tplv-be4g95zd3a-image.jpeg?lk3s=feb11e32&x-expires=1784882899&x-signature=LIC3Np02vCl0SeZiCezFBwIrNq8%3D" alt="北京地铁" class="w-10 h-10 object-contain">
+                            </div>
+                            <p class="text-gray-600 mb-4">运营里程: 909公里</p>
+                            <div class="flex space-x-2">
+                                <a href="https://www.bjsubway.com/" target="_blank" class="flex-1 text-center bg-primary text-white py-2 rounded-lg hover:bg-opacity-90 transition-colors">
+                                    <i class="fa fa-external-link mr-1"></i>官网
+                                </a>
+                                <a href="metro-map.html?city=beijing" class="flex-1 text-center bg-secondary text-white py-2 rounded-lg hover:bg-opacity-90 transition-colors">
+                                    <i class="fa fa-map mr-1"></i>线路图
+                                </a>
+                            </div>
+                        </div>
+                        <div class="map-preview absolute bottom-0 left-0 right-0 bg-white p-2 border-t border-gray-200">
+                            <img src="https://p11-doubao-search-sign.byteimg.com/labis/81b51b5977ea7b9e5970e256f5299432~tplv-be4g95zd3a-image.jpeg?lk3s=feb11e32&x-expires=1784882899&x-signature=bm6RnS5447nYqb1tZEw55e5fkNw%3D" alt="北京地铁线路图" class="w-full h-24 object-contain">
+                        </div>
+                    </div>
+                    
+                    <!-- 天津 -->
+                    <div class="city-card bg-white rounded-xl shadow-card overflow-hidden card-transition hover:shadow-card-hover transform hover:-translate-y-1" data-aos="fade-up" data-aos-delay="100" data-city="天津">
+                        <div class="p-6">
+                            <div class="flex justify-between items-center mb-4">
+                                <h4 class="text-xl font-bold text-dark">天津地铁</h4>
+                                <div class="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white font-bold">TJ</div>
+                            </div>
+                            <p class="text-gray-600 mb-4">运营里程: 263公里</p>
+                            <a href="http://www.tjgdjt.com/" target="_blank" class="block text-center bg-primary text-white py-2 rounded-lg hover:bg-opacity-90 transition-colors">
+                                <i class="fa fa-external-link mr-1"></i>访问官网
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <!-- 石家庄 -->
+                    <div class="city-card bg-white rounded-xl shadow-card overflow-hidden card-transition hover:shadow-card-hover transform hover:-translate-y-1" data-aos="fade-up" data-aos-delay="200" data-city="石家庄">
+                        <div class="p-6">
+                            <div class="flex justify-between items-center mb-4">
+                                <h4 class="text-xl font-bold text-dark">石家庄地铁</h4>
+                                <div class="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white font-bold">SJZ</div>
+                            </div>
+                            <p class="text-gray-600 mb-4">运营里程: 61.6公里</p>
+                            <a href="https://www.sjzmetro.com/" target="_blank" class="block text-center bg-primary text-white py-2 rounded-lg hover:bg-opacity-90 transition-colors">
+                                <i class="fa fa-external-link mr-1"></i>访问官网
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 华东地区 -->
+            <div id="east" class="mb-12">
+                <h3 class="text-2xl font-bold text-dark mb-6 flex items-center" data-aos="fade-right">
+                    <i class="fa fa-map-marker text-secondary mr-2"></i>华东地区
+                </h3>
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6" id="east-cities">
+                    <!-- 上海 -->
+                    <div class="city-card bg-white rounded-xl shadow-card overflow-hidden card-transition hover:shadow-card-hover transform hover:-translate-y-1" data-aos="fade-up" data-city="上海">
+                        <div class="p-6">
+                            <div class="flex justify-between items-center mb-4">
+                                <h4 class="text-xl font-bold text-dark">上海地铁</h4>
+                                <img src="https://p11-doubao-search-sign.byteimg.com/labis/b5dfcddab740a048309eac3e53520273~tplv-be4g95zd3a-image.jpeg?lk3s=feb11e32&x-expires=1784882899&x-signature=UoC65P1OSdBb3nHJGjH4ttlkRiE%3D" alt="上海地铁" class="w-10 h-10 object-contain">
+                            </div>
+                            <p class="text-gray-600 mb-4">运营里程: 900公里</p>
+                            <div class="flex space-x-2">
+                                <a href="https://www.shmetro.com/" target="_blank" class="flex-1 text-center bg-primary text-white py-2 rounded-lg hover:bg-opacity-90 transition-colors">
+                                    <i class="fa fa-external-link mr-1"></i>官网
+                                </a>
+                                <a href="metro-map.html?city=shanghai" class="flex-1 text-center bg-secondary text-white py-2 rounded-lg hover:bg-opacity-90 transition-colors">
+                                    <i class="fa fa-map mr-1"></i>线路图
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 南京 -->
+                    <div class="city-card bg-white rounded-xl shadow-card overflow-hidden card-transition hover:shadow-card-hover transform hover:-translate-y-1" data-aos="fade-up" data-aos-delay="100" data-city="南京">
+                        <div class="p-6">
+                            <div class="flex justify-between items-center mb-4">
+                                <h4 class="text-xl font-bold text-dark">南京地铁</h4>
+                                <div class="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white font-bold">NJ</div>
+                            </div>
+                            <p class="text-gray-600 mb-4">运营里程: 525公里</p>
+                            <a href="http://www.njmetro.com.cn/" target="_blank" class="block text-center bg-primary text-white py-2 rounded-lg hover:bg-opacity-90 transition-colors">
+                                <i class="fa fa-external-link mr-1"></i>访问官网
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <!-- 杭州 -->
+                    <div class="city-card bg-white rounded-xl shadow-card overflow-hidden card-transition hover:shadow-card-hover transform hover:-translate-y-1" data-aos="fade-up" data-aos-delay="200" data-city="杭州">
+                        <div class="p-6">
+                            <div class="flex justify-between items-center mb-4">
+                                <h4 class="text-xl font-bold text-dark">杭州地铁</h4>
+                                <div class="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white font-bold">HZ</div>
+                            </div>
+                            <p class="text-gray-600 mb-4">运营里程: 516公里</p>
+                            <a href="https://www.hzmetro.com/" target="_blank" class="block text-center bg-primary text-white py-2 rounded-lg hover:bg-opacity-90 transition-colors">
+                                <i class="fa fa-external-link mr-1"></i>访问官网
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <!-- 苏州 -->
+                    <div class="city-card bg-white rounded-xl shadow-card overflow-hidden card-transition hover:shadow-card-hover transform hover:-translate-y-1" data-aos="fade-up" data-aos-delay="300" data-city="苏州">
+                        <div class="p-6">
+                            <div class="flex justify-between items-center mb-4">
+                                <h4 class="text-xl font-bold text-dark">苏州地铁</h4>
+                                <div class="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white font-bold">SZ</div>
+                            </div>
+                            <p class="text-gray-600 mb-4">运营里程: 350公里</p>
+                            <a href="http://www.sz-mtr.com/" target="_blank" class="block text-center bg-primary text-white py-2 rounded-lg hover:bg-opacity-90 transition-colors">
+                                <i class="fa fa-external-link mr-1"></i>访问官网
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <!-- 无锡 -->
+                    <div class="city-card bg-white rounded-xl shadow-card overflow-hidden card-transition hover:shadow-card-hover transform hover:-translate-y-1" data-aos="fade-up" data-aos-delay="400" data-city="无锡">
+                        <div class="p-6">
+                            <div class="flex justify-between items-center mb-4">
+                                <h4 class="text-xl font-bold text-dark">无锡地铁</h4>
+                                <div class="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white font-bold">WX</div>
+                            </div>
+                            <p class="text-gray-600 mb-4">运营里程: 144公里</p>
+                            <a href="http://www.wxmetro.net/" target="_blank" class="block text-center bg-primary text-white py-2 rounded-lg hover:bg-opacity-90 transition-colors">
+                                <i class="fa fa-external-link mr-1"></i>访问官网
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <!-- 常州 -->
+                    <div class="city-card bg-white rounded-xl shadow-card overflow-hidden card-transition hover:shadow-card-hover transform hover:-translate-y-1" data-aos="fade-up" data-aos-delay="500" data-city="常州">
+                        <div class="p-6">
+                            <div class="flex justify-between items-center mb-4">
+                                <h4 class="text-xl font-bold text-dark">常州地铁</h4>
+                                <div class="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white font-bold">CZ</div>
+                            </div>
+                            <p class="text-gray-600 mb-4">运营里程: 54公里</p>
+                            <a href="http://www.czmtr.com/" target="_blank" class="block text-center bg-primary text-white py-2 rounded-lg hover:bg-opacity-90 transition-colors">
+                                <i class="fa fa-external-link mr-1"></i>访问官网
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <!-- 徐州 -->
+                    <div class="city-card bg-white rounded-xl shadow-card overflow-hidden card-transition hover:shadow-card-hover transform hover:-translate-y-1" data-aos="fade-up" data-aos-delay="600" data-city="徐州">
+                        <div class="p-6">
+                            <div class="flex justify-between items-center mb-4">
+                                <h4 class="text-xl font-bold text-dark">徐州地铁</h4>
+                                <div class="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white font-bold">XZ</div>
+                            </div>
+                            <p class="text-gray-600 mb-4">运营里程: 95.47公里</p>
+                            <a href="http://www.xzmetro.com/" target="_blank" class="block text-center bg-primary text-white py-2 rounded-lg hover:bg-opacity-90 transition-colors">
+                                <i class="fa fa-external-link mr-1"></i>访问官网
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <!-- 南通 -->
+                    <div class="city-card bg-white rounded-xl shadow-card overflow-hidden card-transition hover:shadow-card-hover transform hover:-translate-y-1" data-aos="fade-up" data-aos-delay="700" data-city="南通">
+                        <div class="p-6">
+                            <div class="flex justify-between items-center mb-4">
+                                <h4 class="text-xl font-bold text-dark">南通地铁</h4>
+                                <div class="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white font-bold">NT</div>
+                            </div>
+                            <p class="text-gray-600 mb-4">运营里程: 60公里</p>
+                            <a href="http://www.ntmetro.com/" target="_blank" class="block text-center bg-primary text-white py-2 rounded-lg hover:bg-opacity-90 transition-colors">
+                                <i class="fa fa-external-link mr-1"></i>访问官网
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 华南地区 -->
+            <div id="south" class="mb-12">
+                <h3 class="text-2xl font-bold text-dark mb-6 flex items-center" data-aos="fade-right">
+                    <i class="fa fa-map-marker text-secondary mr-2"></i>华南地区
+                </h3>
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6" id="south-cities">
+                    <!-- 广州 -->
+                    <div class="city-card bg-white rounded-xl shadow-card overflow-hidden card-transition hover:shadow-card-hover transform hover:-translate-y-1" data-aos="fade-up" data-city="广州">
+                        <div class="p-6">
+                            <div class="flex justify-between items-center mb-4">
+                                <h4 class="text-xl font-bold text-dark">广州地铁</h4>
+                                <div class="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white font-bold">GZ</div>
+                            </div>
+                            <p class="text-gray-600 mb-4">运营里程: 780.4公里</p>
+                            <a href="https://www.gzmtr.com/" target="_blank" class="block text-center bg-primary text-white py-2 rounded-lg hover:bg-opacity-90 transition-colors">
+                                <i class="fa fa-external-link mr-1"></i>访问官网
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <!-- 深圳 -->
+                    <div class="city-card bg-white rounded-xl shadow-card overflow-hidden card-transition hover:shadow-card-hover transform hover:-translate-y-1" data-aos="fade-up" data-aos-delay="100" data-city="深圳">
+                        <div class="p-6">
+                            <div class="flex justify-between items-center mb-4">
+                                <h4 class="text-xl font-bold text-dark">深圳地铁</h4>
+                                <div class="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white font-bold">SZ</div>
+                            </div>
+                            <p class="text-gray-600 mb-4">运营里程: 635公里</p>
+                            <a href="https://www.szmc.net/" target="_blank" class="block text-center bg-primary text-white py-2 rounded-lg hover:bg-opacity-90 transition-colors">
+                                <i class="fa fa-external-link mr-1"></i>访问官网
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <!-- 佛山 -->
+                    <div class="city-card bg-white rounded-xl shadow-card overflow-hidden card-transition hover:shadow-card-hover transform hover:-translate-y-1" data-aos="fade-up" data-aos-delay="200" data-city="佛山">
+                        <div class="p-6">
+                            <div class="flex justify-between items-center mb-4">
+                                <h4 class="text-xl font-bold text-dark">佛山地铁</h4>
+                                <div class="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white font-bold">FS</div>
+                            </div>
+                            <p class="text-gray-600 mb-4">运营里程: 150.2公里</p>
+                            <a href="http://www.fmetro.cn/" target="_blank" class="block text-center bg-primary text-white py-2 rounded-lg hover:bg-opacity-90 transition-colors">
+                                <i class="fa fa-external-link mr-1"></i>访问官网
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <!-- 东莞 -->
+                    <div class="city-card bg-white rounded-xl shadow-card overflow-hidden card-transition hover:shadow-card-hover transform hover:-translate-y-1" data-aos="fade-up" data-aos-delay="300" data-city="东莞">
+                        <div class="p-6">
+                            <div class="flex justify-between items-center mb-4">
+                                <h4 class="text-xl font-bold text-dark">东莞地铁</h4>
+                                <div class="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white font-bold">DG</div>
+                            </div>
+                            <p class="text-gray-600 mb-4">运营里程: 37.8公里</p>
+                            <a href="http://www.dgmetro.com/" target="_blank" class="block text-center bg-primary text-white py-2 rounded-lg hover:bg-opacity-90 transition-colors">
+                                <i class="fa fa-external-link mr-1"></i>访问官网
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <!-- 香港 -->
+                    <div class="city-card bg-white rounded-xl shadow-card overflow-hidden card-transition hover:shadow-card-hover transform hover:-translate-y-1" data-aos="fade-up" data-aos-delay="400" data-city="香港">
+                        <div class="p-6">
+                            <div class="flex justify-between items-center mb-4">
+                                <h4 class="text-xl font-bold text-dark">香港地铁</h4>
+                                <div class="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white font-bold">HK</div>
+                            </div>
+                            <p class="text-gray-600 mb-4">运营里程: 264公里</p>
+                            <a href="https://www.mtr.com.hk/" target="_blank" class="block text-center bg-primary text-white py-2 rounded-lg hover:bg-opacity-90 transition-colors">
+                                <i class="fa fa-external-link mr-1"></i>访问官网
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 华中地区 -->
+            <div id="central" class="mb-12">
+                <h3 class="text-2xl font-bold text-dark mb-6 flex items-center" data-aos="fade-right">
+                    <i class="fa fa-map-marker text-secondary mr-2"></i>华中地区
+                </h3>
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6" id="central-cities">
+                    <!-- 武汉 -->
+                    <div class="city-card bg-white rounded-xl shadow-card overflow-hidden card-transition hover:shadow-card-hover transform hover:-translate-y-1" data-aos="fade-up" data-city="武汉">
+                        <div class="p-6">
+                            <div class="flex justify-between items-center mb-4">
+                                <h4 class="text-xl font-bold text-dark">武汉地铁</h4>
+                                <div class="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white font-bold">WH</div>
+                            </div>
+                            <p class="text-gray-600 mb-4">运营里程: 435公里</p>
+                            <a href="http://www.wuhandt.com/" target="_blank" class="block text-center bg-primary text-white py-2 rounded-lg hover:bg-opacity-90 transition-colors">
+                                <i class="fa fa-external-link mr-1"></i>访问官网
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <!-- 郑州 -->
+                    <div class="city-card bg-white rounded-xl shadow-card overflow-hidden card-transition hover:shadow-card-hover transform hover:-translate-y-1" data-aos="fade-up" data-aos-delay="100" data-city="郑州">
+                        <div class="p-6">
+                            <div class="flex justify-between items-center mb-4">
+                                <h4 class="text-xl font-bold text-dark">郑州地铁</h4>
+                                <div class="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white font-bold">ZZ</div>
+                            </div>
+                            <p class="text-gray-600 mb-4">运营里程: 206.3公里</p>
+                            <a href="http://www.zzmetro.com/" target="_blank" class="block text-center bg-primary text-white py-2 rounded-lg hover:bg-opacity-90 transition-colors">
+                                <i class="fa fa-external-link mr-1"></i>访问官网
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <!-- 长沙 -->
+                    <div class="city-card bg-white rounded-xl shadow-card overflow-hidden card-transition hover:shadow-card-hover transform hover:-translate-y-1" data-aos="fade-up" data-aos-delay="200" data-city="长沙">
+                        <div class="p-6">
+                            <div class="flex justify-between items-center mb-4">
+                                <h4 class="text-xl font-bold text-dark">长沙地铁</h4>
+                                <div class="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white font-bold">CS</div>
+                            </div>
+                            <p class="text-gray-600 mb-4">运营里程: 161.2公里</p>
+                            <a href="http://www.hncsmtr.com/" target="_blank" class="block text-center bg-primary text-white py-2 rounded-lg hover:bg-opacity-90 transition-colors">
+                                <i class="fa fa-external-link mr-1"></i>访问官网
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <!-- 洛阳 -->
+                    <div class="city-card bg-white rounded-xl shadow-card overflow-hidden card-transition hover:shadow-card-hover transform hover:-translate-y-1" data-aos="fade-up" data-aos-delay="300" data-city="洛阳">
+                        <div class="p-6">
+                            <div class="flex justify-between items-center mb-4">
+                                <h4 class="text-xl font-bold text-dark">洛阳地铁</h4>
+                                <div class="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white font-bold">LY</div>
+                            </div>
+                            <p class="text-gray-600 mb-4">运营里程: 43.5公里</p>
+                            <a href="http://www.lymetro.com/" target="_blank" class="block text-center bg-primary text-white py-2 rounded-lg hover:bg-opacity-90 transition-colors">
+                                <i class="fa fa-external-link mr-1"></i>访问官网
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 西南地区 -->
+            <div id="southwest" class="mb-12">
+                <h3 class="text-2xl font-bold text-dark mb-6 flex items-center" data-aos="fade-right">
+                    <i class="fa fa-map-marker text-secondary mr-2"></i>西南地区
+                </h3>
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6" id="southwest-cities">
+                    <!-- 成都 -->
+                    <div class="city-card bg-white rounded-xl shadow-card overflow-hidden card-transition hover:shadow-card-hover transform hover:-translate-y-1" data-aos="fade-up" data-city="成都">
+                        <div class="p-6">
+                            <div class="flex justify-between items-center mb-4">
+                                <h4 class="text-xl font-bold text-dark">成都地铁</h4>
+                                <div class="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white font-bold">CD</div>
+                            </div>
+                            <p class="text-gray-600 mb-4">运营里程: 758.2公里</p>
+                            <a href="https://www.cdmetro.cn/" target="_blank" class="block text-center bg-primary text-white py-2 rounded-lg hover:bg-opacity-90 transition-colors">
+                                <i class="fa fa-external-link mr-1"></i>访问官网
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <!-- 重庆 -->
+                    <div class="city-card bg-white rounded-xl shadow-card overflow-hidden card-transition hover:shadow-card-hover transform hover:-translate-y-1" data-aos="fade-up" data-aos-delay="100" data-city="重庆">
+                        <div class="p-6">
+                            <div class="flex justify-between items-center mb-4">
+                                <h4 class="text-xl font-bold text-dark">重庆地铁</h4>
+                                <div class="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white font-bold">CQ</div>
+                            </div>
+                            <p class="text-gray-600 mb-4">运营里程: 501公里</p>
+                            <a href="http://www.cqmetro.cn/" target="_blank" class="block text-center bg-primary text-white py-2 rounded-lg hover:bg-opacity-90 transition-colors">
+                                <i class="fa fa-external-link mr-1"></i>访问官网
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <!-- 昆明 -->
+                    <div class="city-card bg-white rounded-xl shadow-card overflow-hidden card-transition hover:shadow-card-hover transform hover:-translate-y-1" data-aos="fade-up" data-aos-delay="200" data-city="昆明">
+                        <div class="p-6">
+                            <div class="flex justify-between items-center mb-4">
+                                <h4 class="text-xl font-bold text-dark">昆明地铁</h4>
+                                <div class="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white font-bold">KM</div>
+                            </div>
+                            <p class="text-gray-600 mb-4">运营里程: 139.4公里</p>
+                            <a href="http://www.kunming-metro.com/" target="_blank" class="block text-center bg-primary text-white py-2 rounded-lg hover:bg-opacity-90 transition-colors">
+                                <i class="fa fa-external-link mr-1"></i>访问官网
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <!-- 贵阳 -->
+                    <div class="city-card bg-white rounded-xl shadow-card overflow-hidden card-transition hover:shadow-card-hover transform hover:-translate-y-1" data-aos="fade-up" data-aos-delay="300" data-city="贵阳">
+                        <div class="p-6">
+                            <div class="flex justify-between items-center mb-4">
+                                <h4 class="text-xl font-bold text-dark">贵阳地铁</h4>
+                                <div class="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white font-bold">GY</div>
+                            </div>
+                            <p class="text-gray-600 mb-4">运营里程: 75.7公里</p>
+                            <a href="http://www.gymetro.com/" target="_blank" class="block text-center bg-primary text-white py-2 rounded-lg hover:bg-opacity-90 transition-colors">
+                                <i class="fa fa-external-link mr-1"></i>访问官网
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 西北地区 -->
+            <div id="northwest" class="mb-12">
+                <h3 class="text-2xl font-bold text-dark mb-6 flex items-center" data-aos="fade-right">
+                    <i class="fa fa-map-marker text-secondary mr-2"></i>西北地区
+                </h3>
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6" id="northwest-cities">
+                    <!-- 西安 -->
+                    <div class="city-card bg-white rounded-xl shadow-card overflow-hidden card-transition hover:shadow-card-hover transform hover:-translate-y-1" data-aos="fade-up" data-city="西安">
+                        <div class="p-6">
+                            <div class="flex justify-between items-center mb-4">
+                                <h4 class="text-xl font-bold text-dark">西安地铁</h4>
+                                <div class="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white font-bold">XA</div>
+                            </div>
+                            <p class="text-gray-600 mb-4">运营里程: 279公里</p>
+                            <a href="http://www.xametro.gov.cn/" target="_blank" class="block text-center bg-primary text-white py-2 rounded-lg hover:bg-opacity-90 transition-colors">
+                                <i class="fa fa-external-link mr-1"></i>访问官网
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <!-- 兰州 -->
+                    <div class="city-card bg-white rounded-xl shadow-card overflow-hidden card-transition hover:shadow-card-hover transform hover:-translate-y-1" data-aos="fade-up" data-aos-delay="100" data-city="兰州">
+                        <div class="p-6">
+                            <div class="flex justify-between items-center mb-4">
+                                <h4 class="text-xl font-bold text-dark">兰州地铁</h4>
+                                <div class="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white font-bold">LZ</div>
+                            </div>
+                            <p class="text-gray-600 mb-4">运营里程: 34公里</p>
+                            <a href="http://www.lzgdjt.com/" target="_blank" class="block text-center bg-primary text-white py-2 rounded-lg hover:bg-opacity-90 transition-colors">
+                                <i class="fa fa-external-link mr-1"></i>访问官网
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <!-- 乌鲁木齐 -->
+                    <div class="city-card bg-white rounded-xl shadow-card overflow-hidden card-transition hover:shadow-card-hover transform hover:-translate-y-1" data-aos="fade-up" data-aos-delay="200" data-city="乌鲁木齐">
+                        <div class="p-6">
+                            <div class="flex justify-between items-center mb-4">
+                                <h4 class="text-xl font-bold text-dark">乌鲁木齐地铁</h4>
+                                <div class="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white font-bold">URC</div>
+                            </div>
+                            <p class="text-gray-600 mb-4">运营里程: 27.6公里</p>
+                            <a href="http://www.urumqimetro.com/" target="_blank" class="block text-center bg-primary text-white py-2 rounded-lg hover:bg-opacity-90 transition-colors">
+                                <i class="fa fa-external-link mr-1"></i>访问官网
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 东北地区 -->
+            <div id="northeast" class="mb-12">
+                <h3 class="text-2xl font-bold text-dark mb-6 flex items-center" data-aos="fade-right">
+                    <i class="fa fa-map-marker text-secondary mr-2"></i>东北地区
+                </h3>
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6" id="northeast-cities">
+                    <!-- 沈阳 -->
+                    <div class="city-card bg-white rounded-xl shadow-card overflow-hidden card-transition hover:shadow-card-hover transform hover:-translate-y-1" data-aos="fade-up" data-city="沈阳">
+                        <div class="p-6">
+                            <div class="flex justify-between items-center mb-4">
+                                <h4 class="text-xl font-bold text-dark">沈阳地铁</h4>
+                                <div class="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white font-bold">SY</div>
+                            </div>
+                            <p class="text-gray-600 mb-4">运营里程: 117公里</p>
+                            <a href="http://www.symtc.com/" target="_blank" class="block text-center bg-primary text-white py-2 rounded-lg hover:bg-opacity-90 transition-colors">
+                                <i class="fa fa-external-link mr-1"></i>访问官网
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <!-- 长春 -->
+                    <div class="city-card bg-white rounded-xl shadow-card overflow-hidden card-transition hover:shadow-card-hover transform hover:-translate-y-1" data-aos="fade-up" data-aos-delay="100" data-city="长春">
+                        <div class="p-6">
+                            <div class="flex justify-between items-center mb-4">
+                                <h4 class="text-xl font-bold text-dark">长春地铁</h4>
+                                <div class="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white font-bold">CC</div>
+                            </div>
+                            <p class="text-gray-600 mb-4">运营里程: 100.1公里</p>
+                            <a href="http://www.ccmetro.com/" target="_blank" class="block text-center bg-primary text-white py-2 rounded-lg hover:bg-opacity-90 transition-colors">
+                                <i class="fa fa-external-link mr-1"></i>访问官网
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <!-- 大连 -->
+                    <div class="city-card bg-white rounded-xl shadow-card overflow-hidden card-transition hover:shadow-card-hover transform hover:-translate-y-1" data-aos="fade-up" data-aos-delay="200" data-city="大连">
+                        <div class="p-6">
+                            <div class="flex justify-between items-center mb-4">
+                                <h4 class="text-xl font-bold text-dark">大连地铁</h4>
+                                <div class="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white font-bold">DL</div>
+                            </div>
+                            <p class="text-gray-600 mb-4">运营里程: 237.3公里</p>
+                            <a href="http://www.dlmetro.com/" target="_blank" class="block text-center bg-primary text-white py-2 rounded-lg hover:bg-opacity-90 transition-colors">
+                                <i class="fa fa-external-link mr-1"></i>访问官网
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <!-- 哈尔滨 -->
+                    <div class="city-card bg-white rounded-xl shadow-card overflow-hidden card-transition hover:shadow-card-hover transform hover:-translate-y-1" data-aos="fade-up" data-aos-delay="300" data-city="哈尔滨">
+                        <div class="p-6">
+                            <div class="flex justify-between items-center mb-4">
+                                <h4 class="text-xl font-bold text-dark">哈尔滨地铁</h4>
+                                <div class="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white font-bold">HRB</div>
+                            </div>
+                            <p class="text-gray-600 mb-4">运营里程: 31.6公里</p>
+                            <a href="http://www.harbinmetro.com/" target="_blank" class="block text-center bg-primary text-white py-2 rounded-lg hover:bg-opacity-90 transition-colors">
+                                <i class="fa fa-external-link mr-1"></i>访问官网
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
 
-# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
-# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
-concurrency:
-  group: "pages"
-  cancel-in-progress: false
+        <!-- 地铁爱好者资源 -->
+        <section id="爱好者资源" class="mb-16">
+            <h2 class="text-3xl font-bold text-dark mb-8" data-aos="fade-right">地铁爱好者资源</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- 地铁通 -->
+                <div class="bg-white rounded-xl shadow-card overflow-hidden card-transition hover:shadow-card-hover transform hover:-translate-y-1" data-aos="fade-up">
+                    <div class="h-48 bg-primary flex items-center justify-center">
+                        <i class="fa fa-subway text-white text-6xl"></i>
+                    </div>
+                    <div class="p-6">
+                        <h3 class="text-xl font-bold text-dark mb-3">地铁通</h3>
+                        <p class="text-gray-600 mb-4">覆盖全国50+城市地铁线路查询、换乘规划、站点信息，支持离线使用，是地铁爱好者必备工具。</p>
+                        <div class="flex flex-wrap gap-2 mb-4">
+                            <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">线路查询</span>
+                            <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">换乘规划</span>
+                            <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">离线使用</span>
+                        </div>
+                        <a href="https://www.metroman.cn" target="_blank" class="inline-block bg-primary text-white px-4 py-2 rounded-lg hover:bg-opacity-90 transition-colors">
+                            <i class="fa fa-external-link mr-1"></i>访问官网
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- 地铁资源网 -->
+                <div class="bg-white rounded-xl shadow-card overflow-hidden card-transition hover:shadow-card-hover transform hover:-translate-y-1" data-aos="fade-up" data-aos-delay="100">
+                    <div class="h-48 bg-secondary flex items-center justify-center">
+                        <i class="fa fa-map text-white text-6xl"></i>
+                    </div>
+                    <div class="p-6">
+                        <h3 class="text-xl font-bold text-dark mb-3">地铁资源网</h3>
+                        <p class="text-gray-600 mb-4">提供全球地铁线路图查询，按周分类更新，包含详细的站点信息和运营时间，完全免费使用。</p>
+                        <div class="flex flex-wrap gap-2 mb-4">
+                            <span class="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded">全球线路图</span>
+                            <span class="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded">运营时间</span>
+                            <span class="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded">免费资源</span>
+                        </div>
+                        <a href="http://chinatrain12306.com/metro/resources.htm" target="_blank" class="inline-block bg-secondary text-white px-4 py-2 rounded-lg hover:bg-opacity-90 transition-colors">
+                            <i class="fa fa-external-link mr-1"></i>访问网站
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- 地铁爱好者论坛 -->
+                <div class="bg-white rounded-xl shadow-card overflow-hidden card-transition hover:shadow-card-hover transform hover:-translate-y-1" data-aos="fade-up" data-aos-delay="200">
+                    <div class="h-48 bg-green-600 flex items-center justify-center">
+                        <i class="fa fa-comments text-white text-6xl"></i>
+                    </div>
+                    <div class="p-6">
+                        <h3 class="text-xl font-bold text-dark mb-3">地铁爱好者论坛</h3>
+                        <p class="text-gray-600 mb-4">汇聚全国各地地铁爱好者，分享地铁资讯、线路图、建设动态，交流地铁文化和收藏心得。</p>
+                        <div class="flex flex-wrap gap-2 mb-4">
+                            <span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">资讯分享</span>
+                            <span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">线路图</span>
+                            <span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">交流社区</span>
+                        </div>
+                        <a href="https://www.dqtrip.com" target="_blank" class="inline-block bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-opacity-90 transition-colors">
+                            <i class="fa fa-external-link mr-1"></i>访问论坛
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
 
-jobs:
-  # Single deploy job since we're just deploying
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          # Upload entire repository
-          path: '.'
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+    <!-- 底部区域 -->
+    <footer class="bg-dark text-white py-12">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+                <div>
+                    <h3 class="text-xl font-bold mb-4">全国地铁官网导航</h3>
+                    <p class="text-gray-400">为通勤者、旅行者和地铁爱好者提供便捷的地铁信息服务平台</p>
+                    <div class="flex space-x-4 mt-4">
+                        <a href="#" class="text-gray-400 hover:text-white transition-colors">
+                            <i class="fa fa-weixin text-xl"></i>
+                        </a>
+                        <a href="#" class="text-gray-400 hover:text-white transition-colors">
+                            <i class="fa fa-weibo text-xl"></i>
+                        </a>
+                        <a href="#" class="text-gray-400 hover:text-white transition-colors">
+                            <i class="fa fa-github text-xl"></i>
+                        </a>
+                    </div>
+                </div>
+                
+                <div>
+                    <h3 class="text-xl font-bold mb-4">快速链接</h3>
+                    <ul class="space-y-2">
+                        <li><a href="#all-cities" class="text-gray-400 hover:text-white transition-colors">全国地铁城市</a></li>
+                        <li><a href="#爱好者资源" class="text-gray-400 hover:text-white transition-colors">地铁爱好者资源</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition-colors">关于我们</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition-colors">联系方式</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h3 class="text-xl font-bold mb-4">订阅更新</h3>
+                    <p class="text-gray-400 mb-4">订阅我们的通讯，获取最新地铁资讯和网站更新</p>
+                    <div class="flex">
+                        <input type="email" placeholder="您的邮箱地址" class="px-4 py-2 rounded-l-lg w-full focus:outline-none text-dark">
+                        <button class="bg-primary text-white px-4 py-2 rounded-r-lg hover:bg-opacity-90 transition-colors">
+                            订阅
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="border-t border-gray-800 pt-8 text-center text-gray-500">
+                <p>&copy; 2026 全国地铁官网导航 - 地铁爱好者资源平台. 保留所有权利.</p>
+                <p class="mt-2">数据来源：中国城市轨道交通协会及各城市地铁官方网站</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- 返回顶部按钮 -->
+    <button id="back-to-top" class="fixed bottom-8 right-8 bg-primary text-white w-12 h-12 rounded-full flex items-center justify-center shadow-lg opacity-0 invisible transition-all duration-300">
+        <i class="fa fa-arrow-up"></i>
+    </button>
+
+    <!-- JavaScript -->
+    <script>
+        // 初始化AOS动画库
+        document.addEventListener('DOMContentLoaded', function() {
+            AOS.init();
+            
+            // 移动端菜单切换
+            const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+            const mobileSearch = document.getElementById('mobile-search');
+            
+            mobileMenuBtn.addEventListener('click', function() {
+                mobileSearch.classList.toggle('hidden');
+            });
+            
+            // 视图切换
+            const gridViewBtn = document.getElementById('grid-view');
+            const listViewBtn = document.getElementById('list-view');
+            const cityCards = document.querySelectorAll('.city-card');
+            
+            gridViewBtn.addEventListener('click', function() {
+                gridViewBtn.classList.remove('bg-white', 'text-primary');
+                gridViewBtn.classList.add('bg-primary', 'text-white');
+                listViewBtn.classList.remove('bg-primary', 'text-white');
+                listViewBtn.classList.add('bg-white', 'text-primary');
+                
+                cityCards.forEach(card => {
+                    card.classList.remove('grid-cols-1');
+                    card.parentElement.classList.add('grid-cols-2', 'sm:grid-cols-3', 'md:grid-cols-4', 'lg:grid-cols-5');
+                });
+            });
+            
+            listViewBtn.addEventListener('click', function() {
+                listViewBtn.classList.remove('bg-white', 'text-primary');
+                listViewBtn.classList.add('bg-primary', 'text-white');
+                gridViewBtn.classList.remove('bg-primary', 'text-white');
+                gridViewBtn.classList.add('bg-white', 'text-primary');
+                
+                const citySections = document.querySelectorAll('[id$="-cities"]');
+                citySections.forEach(section => {
+                    section.classList.remove('grid-cols-2', 'sm:grid-cols-3', 'md:grid-cols-4', 'lg:grid-cols-5');
+                    section.classList.add('grid-cols-1');
+                });
+            });
+            
+            // 城市搜索功能
+            const citySearch = document.getElementById('city-search');
+            const searchBtn = document.getElementById('search-btn');
+            
+            function searchCities() {
+                const searchTerm = citySearch.value.toLowerCase().trim();
+                
+                if (searchTerm === '') {
+                    cityCards.forEach(card => {
+                        card.style.display = 'block';
+                    });
+                    return;
+                }
+                
+                cityCards.forEach(card => {
+                    const cityName = card.getAttribute('data-city');
+                    if (cityName && cityName.toLowerCase().includes(searchTerm)) {
+                        card.style.display = 'block';
+                        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        card.classList.add('ring-4', 'ring-secondary');
+                        setTimeout(() => {
+                            card.classList.remove('ring-4', 'ring-secondary');
+                        }, 2000);
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
+            }
+            
+            searchBtn.addEventListener('click', searchCities);
+            citySearch.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    searchCities();
+                }
+            });
+            
+            // 返回顶部按钮
+            const backToTopBtn = document.getElementById('back-to-top');
+            
+            window.addEventListener('scroll', function() {
+                if (window.pageYOffset > 300) {
+                    backToTopBtn.classList.remove('opacity-0', 'invisible');
+                    backToTopBtn.classList.add('opacity-100', 'visible');
+                } else {
+                    backToTopBtn.classList.remove('opacity-100', 'visible');
+                    backToTopBtn.classList.add('opacity-0', 'invisible');
+                }
+            });
+            
+            backToTopBtn.addEventListener('click', function() {
+                window.scrollTo({
+                    top: 0,
+                    behavior: 'smooth'
+                });
+            });
+            
+            // 平滑滚动
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    
+                    const targetId = this.getAttribute('href');
+                    const targetElement = document.querySelector(targetId);
+                    
+                    if (targetElement) {
+                        targetElement.scrollIntoView({
+                            behavior: 'smooth'
+                        });
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

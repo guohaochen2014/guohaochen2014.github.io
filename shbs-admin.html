@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>管理员后台</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:sans-serif}
+body{background:#f4f5f7;padding:20px}
+.container{max-width:900px;margin:0 auto}
+.head{background:white;padding:20px;border-radius:12px;margin-bottom:20px;text-align:center}
+.head h1{color:#1e293b}
+.back{display:inline-block;margin-top:10px;color:#2563eb;text-decoration:none}
+.table-card{background:white;padding:20px;border-radius:12px}
+table{width:100%;border-collapse:collapse;margin-top:10px}
+th,td{padding:12px;text-align:left;border-bottom:1px solid #eee}
+th{background:#f8f9fa}
+.btn{padding:6px 10px;border:none;border-radius:6px;cursor:pointer;margin:2px}
+.btn-blue{background:#2563eb;color:white}
+.btn-orange{background:#f59e0b;color:white}
+.btn-red{background:red;color:white}
+.btn-green{background:#10b981;color:white}
+input{padding:6px;width:100px;border:1px solid #ddd;border-radius:6px}
+.alert{color:red;text-align:center;margin-bottom:10px}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="head">
+    <h1>管理员后台 - 用户管理</h1>
+    <a class="back" href="shbs-index.html">返回首页</a>
+  </div>
+
+  <div class="table-card">
+    <div id="msg" class="alert"></div>
+    <table>
+      <thead>
+        <tr>
+          <th>用户名</th>
+          <th>密码</th>
+          <th>管理员</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody id="userList"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+let user = JSON.parse(localStorage.getItem('user')) || null
+if (!user || !user.isAdmin) {
+  document.body.innerHTML = '<h1>无权限访问</h1><a href="shbs-index.html">返回首页</a>'
+}
+
+function loadUsers() {
+  let users = JSON.parse(localStorage.getItem('busUsers')) || [
+    { username: "admin", pwd: "admin", isAdmin: true }
+  ]
+  let html = ''
+  users.forEach((u, i) => {
+    html += `
+    <tr>
+      <td><input id="un_${i}" value="${u.username}"></td>
+      <td><input id="pw_${i}" value="${u.pwd}"></td>
+      <td>${u.isAdmin ? '是' : '否'}</td>
+      <td>
+        <button class="btn btn-green" onclick="save(${i})">保存</button>
+        <button class="btn btn-orange" onclick="setAdmin(${i})">设为管理员</button>
+        <button class="btn btn-red" onclick="delUser(${i})">删除</button>
+      </td>
+    </tr>`
+  })
+  document.getElementById('userList').innerHTML = html
+}
+
+function save(i) {
+  let users = JSON.parse(localStorage.getItem('busUsers'))
+  let un = document.getElementById('un_' + i).value.trim()
+  let pw = document.getElementById('pw_' + i).value.trim()
+  if (!un || !pw) return showMsg('用户名和密码不能为空')
+  users[i].username = un
+  users[i].pwd = pw
+  localStorage.setItem('busUsers', JSON.stringify(users))
+  showMsg('保存成功')
+  loadUsers()
+}
+
+function setAdmin(i) {
+  let users = JSON.parse(localStorage.getItem('busUsers'))
+  users[i].isAdmin = !users[i].isAdmin
+  localStorage.setItem('busUsers', JSON.stringify(users))
+  loadUsers()
+}
+
+function delUser(i) {
+  if (!confirm('确定删除？')) return
+  let users = JSON.parse(localStorage.getItem('busUsers'))
+  users.splice(i, 1)
+  localStorage.setItem('busUsers', JSON.stringify(users))
+  loadUsers()
+}
+
+function showMsg(text) {
+  document.getElementById('msg').innerText = text
+  setTimeout(() => document.getElementById('msg').innerText = '', 2000)
+}
+
+window.onload = loadUsers
+</script>
+</body>
+</html>

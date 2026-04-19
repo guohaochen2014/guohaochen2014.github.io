@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>上海公交图库</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:sans-serif}
+body{background:#f4f5f7}
+.container{max-width:1200px;margin:0 auto;padding:0 12px}
+.nav{background:#1e293b;color:white;padding:12px 0;position:sticky;top:0;z-index:10}
+.nav .container{display:flex;justify-content:space-between;align-items:center;gap:16px}
+.logo{font-weight:bold;font-size:17px}
+.search input{width:100%;padding:8px 12px;border-radius:6px;border:none}
+.user{font-size:14px}
+.user a{color:white;margin-left:10px;text-decoration:none}
+.head{background:white;padding:20px;text-align:center;margin-bottom:16px;border-bottom:1px solid #eee}
+.filter{background:white;padding:12px;border-radius:8px;margin-bottom:16px}
+.upload{background:white;padding:20px;border-radius:10px;margin-bottom:20px}
+.upload h3{margin-bottom:14px;border-left:3px solid #2563eb;padding-left:10px}
+.form input,.form textarea{width:100%;padding:8px;margin-bottom:10px;border:1px solid #ddd;border-radius:6px}
+button{background:#2563eb;color:white;border:none;padding:10px 16px;border-radius:6px;cursor:pointer}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+.card{background:white;border-radius:10px;overflow:hidden;position:relative}
+.card img{width:100%;height:200px;object-fit:cover}
+.info{padding:12px;font-size:13px}
+.del{position:absolute;top:8px;right:8px;background:red;color:white;width:26px;height:26px;border-radius:50%;border:none;cursor:pointer}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.8);display:none;align-items:center;justify-content:center}
+.modal img{max-width:90%;max-height:90%}
+.close{position:absolute;top:20px;right:20px;color:white;font-size:30px;cursor:pointer}
+.admin-tag{background:orange;color:white;padding:2px 6px;border-radius:4px;font-size:12px}
+</style>
+</head>
+<body>
+
+<div class="nav">
+  <div class="container">
+    <div class="logo">🚌 上海公交图库</div>
+    <div class="search" style="flex:1;max-width:400px">
+      <input id="kw" placeholder="搜索线路/编号/地点" oninput="search()">
+    </div>
+    <div class="user" id="userbar"></div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="head"><h1>公交照片库</h1><p></p></div>
+  <div class="filter">
+    <select id="sort" onchange="render()"><option value="new">最新</option><option value="hot">最热</option></select>
+    <select id="lineFilter" onchange="search()"></select>
+  </div>
+
+  <div class="upload">
+    <h3>📷 上传照片</h3>
+    <div class="form">
+      <input type="file" id="img"><br>
+      <textarea id="desc" placeholder="简介"></textarea>
+      <input id="place" placeholder="拍摄地点">
+      <input id="line" placeholder="线路">
+      <input id="code" placeholder="车辆自编号">
+      <button onclick="upload()">发布并保存</button>
+    </div>
+  </div>
+
+  <div id="grid" class="grid"></div>
+</div>
+
+<div class="modal" id="modal">
+  <span class="close" onclick="mclose()">×</span>
+  <img id="mimg">
+</div>
+
+<script>
+let images = JSON.parse(localStorage.getItem('busImages')) || []
+let user = JSON.parse(localStorage.getItem('user')) || null
+
+window.onload = () => {
+  if(user){
+    let bar = user.isAdmin ? `<span class=admin-tag>管理员</span> ${user.username}` : user.username
+    bar += ` | <a href="shbs-login.html">退出</a>`
+    if(user.isAdmin) bar += ` | <a href="shbs-admin.html">用户管理</a>`
+    document.getElementById('userbar').innerHTML = bar
+  }else{
+    document.getElementById('userbar').innerHTML = `<a href="shbs-login.html">登录</a> <a href="shbs-register.html">注册</a>`
+  }
+  renderLineFilter()
+  render()
+}
+
+function upload(){
+  if(!user) return location.href='shbs-login.html'
+  const f = document.getElementById('img').files[0]
+  const d = document.getElementById('desc').value
+  const p = document.getElementById('place').value
+  const l = document.getElementById('line').value
+  const c = document.getElementById('code').value
+  if(!f||!p||!l) return alert('请完善')
+  const r = new FileReader()
+  r.onload = e => {
+    images.unshift({id:Date.now(),img:e.target.result,desc:d,place:p,line:l,code:c,user:user.username,likes:0})
+    localStorage.setItem('busImages',JSON.stringify(images))
+    renderLineFilter();render()
+    document.getElementById('img').value=''
+    document.getElementById('desc').value=''
+    document.getElementById('place').value=''
+    document.getElementById('line').value=''
+    document.getElementById('code').value=''
+  }
+  r.readAsDataURL(f)
+}
+
+function render(list){
+  if(!list) list=images
+  const s = document.getElementById('sort').value
+  list = [...list]
+  if(s==='new') list.sort((a,b)=>b.id-a.id)
+  if(s==='hot') list.sort((a,b)=>b.likes-a.likes)
+  const g = document.getElementById('grid')
+  g.innerHTML = list.map((it,i)=>`
+  <div class="card">
+    ${user?.isAdmin?`<button class=del onclick="del(${i})">×</button>`:''}
+    <img src="${it.img}" onclick="mshow('${it.img}')">
+    <div class="info">${it.line} ${it.code||''}<br>${it.desc||''}<br>📍${it.place} · ${it.user}</div>
+  </div>`).join('')
+}
+
+function renderLineFilter(){
+  const lines = [...new Set(images.map(x=>x.line))].sort()
+  document.getElementById('lineFilter').innerHTML = `<option value="">全部线路</option>`+lines.map(l=>`<option value="${l}">${l}</option>`).join('')
+}
+
+function search(){
+  const kw = document.getElementById('kw').value.toLowerCase()
+  const line = document.getElementById('lineFilter').value
+  const res = images.filter(it=>{
+    const t = (it.line+it.code+it.place+it.desc+it.user).toLowerCase()
+    return (!line||it.line===line) && (!kw||t.includes(kw))
+  })
+  render(res)
+}
+
+function del(i){
+  if(!user?.isAdmin) return
+  images.splice(i,1)
+  localStorage.setItem('busImages',JSON.stringify(images))
+  renderLineFilter();render()
+}
+
+function mshow(u){document.getElementById('modal').style.display='flex';document.getElementById('mimg').src=u}
+function mclose(){document.getElementById('modal').style.display='none'}
+</script>
+</body>
+</html>

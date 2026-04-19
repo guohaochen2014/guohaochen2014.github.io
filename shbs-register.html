@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <title>注册</title>
 <style>
-body{background:#f4f5f7;display:grid;place-items:center;height:100vh;margin:0;font-family:sans-serif}
+body{background:#f4f5f7;display:grid;place-items:center;height:100vh;margin:0}
 .box{background:white;padding:30px;border-radius:12px;width:100%;max-width:400px}
 h2{text-align:center;margin-bottom:20px}
 input{width:100%;padding:10px;margin-bottom:12px;border:1px solid #ddd;border-radius:6px}
@@ -15,26 +15,25 @@ a{display:block;text-align:center;margin-top:10px;color:#666}
 <body>
 <div class="box">
   <h2>注册</h2>
-  <input id="user" placeholder="用户名">
+  <input id="username" placeholder="用户名">
   <input id="pwd" placeholder="密码">
   <button onclick="reg()">注册</button>
   <a href="shbs-login.html">已有账号</a>
   <a href="shbs-index.html">返回首页</a>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-function reg(){
-  const user = document.getElementById('user').value
-  const pwd = document.getElementById('pwd').value
-  if(!user||!pwd) return alert('请填写完整')
-  let users = JSON.parse(localStorage.getItem('busUsers')) || [
-    {username:"admin",pwd:"admin",isAdmin:true}
-  ]
-  if(users.some(x=>x.username===user)) return alert('用户名已存在')
-  users.push({username:user,pwd:pwd,isAdmin:false})
-  localStorage.setItem('busUsers',JSON.stringify(users))
-  alert('注册成功')
-  location.href='shbs-login.html'
+const supabase = supabase.createClient('https://eonkotdvmcqabiglylyu.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVvbmtvdGR2bWNxYWJpZ2x5bHl1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY1Njk1OTYsImV4cCI6MjA5MjE0NTU5Nn0.TaXB2HHLL27rpaYAAn18IcJrPQLtnfsSaQq89cnmXxY');
+
+async function reg(){
+  const user = document.getElementById('username').value;
+  const pwd = document.getElementById('pwd').value;
+  if(!user||!pwd) return alert('请填写完整');
+  const { error } = await supabase.from('users').insert([{ username: user, pwd: pwd, is_admin: false }]);
+  if(error) return alert(error.message);
+  alert('注册成功');
+  location.href = 'shbs-login.html';
 }
 </script>
 </body>

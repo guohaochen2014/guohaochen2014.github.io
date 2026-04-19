@@ -24,7 +24,8 @@ a{display:block;text-align:center;margin-top:10px;color:#666}
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-const supabase = supabase.createClient('https://eonkotdvmcqabiglylyu.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVvbmtvdGR2bWNxYWJpZ2x5bHl1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY1Njk1OTYsImV4cCI6MjA5MjE0NTU5Nn0.TaXB2HHLL27rpaYAAn18IcJrPQLtnfsSaQq89cnmXxY');
+const { createClient } = supabase;
+const supabase = createClient('https://eonkotdvmcqabiglylyu.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVvbmtvdGR2bWNxYWJpZ2x5bHl1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY1Njk1OTYsImV4cCI6MjA5MjE0NTU5Nn0.TaXB2HHLL27rpaYAAn18IcJrPQLtnfsSaQq89cnmXxY');
 
 async function reg(){
   const user = document.getElementById('username').value;
